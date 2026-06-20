@@ -4,10 +4,20 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "dynamiq"
-version = "0.0.1"
-description = "RL algorithms as a typed, compiled graph."
+version = "0.1.0"
+description = "Reinforcement-learning algorithms as a typed, compiled graph."
 readme = "README.md"
 requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Dynamiq contributors" }]
+keywords = ["reinforcement-learning", "deep-learning", "pytorch", "rl", "dqn", "ppo", "sac"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
 dependencies = [
     "torch>=2.1",
     "numpy>=1.24",
@@ -16,6 +26,11 @@ dependencies = [
 [project.optional-dependencies]
 examples = ["gymnasium[classic-control]>=0.29"]
 dev = ["pytest>=7.0"]
+
+[project.urls]
+Homepage = "https://github.com/dynamiq-rl/dynamiq"
+Repository = "https://github.com/dynamiq-rl/dynamiq"
+Issues = "https://github.com/dynamiq-rl/dynamiq/issues"
 
 [tool.setuptools.packages.find]
 include = ["dynamiq*"]
