@@ -386,7 +386,7 @@ targets), and that all three families compile, step, and learn.
 ```bibtex
 @software{dynamiq,
   title  = {Dynamiq: Reinforcement-Learning Algorithms as a Typed, Compiled Graph},
-  author = {Dynamiq contributors},
+  author = {Arunabh Bora},
   year   = {2026},
   url    = {https://github.com/dynamiq-rl/dynamiq}
 }
