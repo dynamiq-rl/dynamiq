@@ -5,7 +5,7 @@
 <h1 align="center">Dynamiq</h1>
 
 <p align="center">
-  <b>Reinforcement-learning algorithms as a typed, compiled graph — not a hand-written training loop.</b>
+  <b>Reinforcement-learning algorithms as a typed, compiled graph, not a hand-written training loop.</b>
 </p>
 
 <p align="center">
@@ -32,17 +32,17 @@
 Every mainstream deep-RL framework asks you to **write the training loop**: compute the
 targets, compute the loss, call `backward()`, step the optimizer, sync the target
 network, and *remember* to `stop_gradient` in exactly the right places. That is precisely
-where RL bugs live — and they don't crash, they just quietly fail to learn:
+where RL bugs live, and they don't crash, they just quietly fail to learn:
 
 - a bootstrap target that was never detached, silently back-propagating through the target;
 - replay-buffer (off-policy) data fed into an on-policy objective like PPO;
 - a target network that is never synchronized, or synchronized on the wrong schedule.
 
 **Dynamiq flips the model.** You *declare* an algorithm as a graph of **typed signals**.
-A compiler type-checks the graph — turning those silent failures into **compile-time
-errors** — and then builds the optimized loop for you. And because an algorithm is now a
+A compiler type-checks the graph, turning those silent failures into **compile-time
+errors**, and then builds the optimized loop for you. And because an algorithm is now a
 first-class **graph object** rather than opaque imperative code, it can be inspected,
-linted, explained — and, on the roadmap, *searched*.
+linted, explained, and (on the roadmap) *searched*.
 
 ```python
 import dynamiq as dq
@@ -61,7 +61,7 @@ algo.step()                                            # one optimized update
 That is a complete, correct DQN. `q_target(...)` is **auto-detached**, so the bootstrap
 can never leak gradients. The target net **cannot be built without a sync rule**. The
 replay sample is **typed off-policy**, so feeding it to an on-policy objective is a
-compile error — not a 3 a.m. debugging session.
+compile error, not a 3 a.m. debugging session.
 
 ---
 
@@ -84,9 +84,9 @@ Run the test suite and the examples:
 
 ```bash
 pytest -q                               # 11 tests, all green
-python examples/dqn_cartpole.py         # DQN  — value-based, off-policy
-python examples/ppo_cartpole.py         # PPO  — policy-gradient, on-policy
-python examples/sac_discrete_cartpole.py# SAC  — actor-critic, off-policy
+python examples/dqn_cartpole.py         # DQN: value-based, off-policy
+python examples/ppo_cartpole.py         # PPO: policy-gradient, on-policy
+python examples/sac_discrete_cartpole.py# SAC: actor-critic, off-policy
 ```
 
 Dynamiq is **device-agnostic**: `dq.compile(..., device="cuda")` (or `"cpu"`); it
@@ -102,7 +102,7 @@ of static type information that ordinary tensors do not**:
 
 | Static type | Meaning | What it prevents |
 |---|---|---|
-| `provenance` | `ON_POLICY` / `OFF_POLICY` / `AGNOSTIC` — the distribution the data came from | off-policy data inside an on-policy objective; mixing distributions |
+| `provenance` | `ON_POLICY` / `OFF_POLICY` / `AGNOSTIC` (the distribution the data came from) | off-policy data inside an on-policy objective; mixing distributions |
 | `carries_grad` | whether evaluating the node is differentiably connected to learnable params | missing stop-gradient on a bootstrap/target |
 
 These are computed **structurally as the graph is built**, so they cost nothing at runtime
@@ -160,13 +160,13 @@ print(dq.explain(objective))
 
 ---
 
-## Worked examples — with the math
+## Worked examples (with the math)
 
 Each algorithm below shows the standard equations and the **exact Dynamiq code** that
 expresses them. The training/environment-interaction loop is orthogonal and lives in
 [`examples/`](examples/).
 
-### 1. DQN — value-based, off-policy
+### 1. DQN: value-based, off-policy
 
 The Bellman target uses the **target network** $Q_{\theta^-}$ and is a stop-gradient; the
 online network $Q_\theta$ is regressed toward it:
@@ -193,7 +193,7 @@ algo   = dq.compile(loss, opt=dq.Adam(2.5e-4))
 gathers $Q_\theta(s,a)$. Using the **online** net in `target` would make $y$ carry
 gradients → compile error.
 
-### 2. PPO — policy-gradient, on-policy
+### 2. PPO: policy-gradient, on-policy
 
 Advantages and returns come from **Generalized Advantage Estimation** over a rollout:
 
@@ -206,10 +206,10 @@ R_t = \hat{A}_t + V(s_t)
 $$
 
 The objective is the **clipped surrogate** plus a value term and an entropy bonus, with
-$\rho_t(\theta) = \dfrac{\pi_\theta(a_t\mid s_t)}{\pi_{\theta_\text{old}}(a_t\mid s_t)} = \exp\!\big(\log\pi_\theta - \log\pi_{\theta_\text{old}}\big)$:
+$\rho_t(\theta) = \dfrac{\pi_\theta(a_t\mid s_t)}{\pi_{\theta_\text{old}}(a_t\mid s_t)} = \exp\big(\log\pi_\theta - \log\pi_{\theta_\text{old}}\big)$:
 
 $$
-\mathcal{L}^{\text{CLIP}}(\theta) = -\,\mathbb{E}_t\!\Big[\min\big(\rho_t\,\hat{A}_t,\ \operatorname{clip}(\rho_t, 1-\epsilon, 1+\epsilon)\,\hat{A}_t\big)\Big]
+\mathcal{L}^{\text{CLIP}}(\theta) = -\,\mathbb{E}_t\Big[\min\big(\rho_t\,\hat{A}_t,\ \mathrm{clip}(\rho_t, 1-\epsilon, 1+\epsilon)\,\hat{A}_t\big)\Big]
 $$
 
 $$
@@ -229,10 +229,10 @@ algo = dq.compile([policy_loss, value_loss, entropy_bonus], opt=dq.Adam(3e-4))
 ```
 
 `ppo_clip` builds $\rho_t$, the `min`, and the clip *from primitives*, and requires
-`ON_POLICY` data — passing a `ReplaySample` here is a compile error. GAE is computed by
+`ON_POLICY` data; passing a `ReplaySample` here is a compile error. GAE is computed by
 `rollout.compute_gae(last_value, gamma, lam)` before the update epochs.
 
-### 3. SAC (discrete) — actor-critic, off-policy
+### 3. SAC (discrete): actor-critic, off-policy
 
 Twin critics $Q_{\theta_1}, Q_{\theta_2}$, a stochastic policy $\pi_\phi$, and a learned
 temperature $\alpha$. The **soft state value** at the next state and the critic target:
@@ -288,7 +288,7 @@ algo = dq.compile([crit1, crit2, actor, temp], opt=dq.Adam(3e-4))
 ```
 
 `dq.minimum` is the twin-Q $\min$; `dq.Parameter` is the learned $\alpha$, folded into the
-optimizer automatically. The compiler **requires** the Bellman target to be detached — the
+optimizer automatically. The compiler **requires** the Bellman target to be detached: the
 `test_sac_target_without_detach_is_rejected` test exercises exactly the bug where it isn't.
 
 ---
@@ -308,34 +308,34 @@ Three different algorithm *families*, expressed in the same primitives, all solv
 
 ## API reference
 
-**Networks & parameters** — `QNetwork(name, obs_dim, n_actions, hidden=(128,128))`,
+**Networks & parameters.** `QNetwork(name, obs_dim, n_actions, hidden=(128,128))`,
 `PolicyNetwork(...)`, `Parameter(name, init=0.0)`.
 
-**Targets** — `Target(source, sync="hard", every=N)` or `Target(source, sync="soft", tau=τ)`.
+**Targets.** `Target(source, sync="hard", every=N)` or `Target(source, sync="soft", tau=τ)`.
 Calling a target always yields a detached signal.
 
-**Sources** — `ReplayBuffer(capacity, obs_dim)` + `ReplaySample(buffer, n)` (fields:
+**Sources.** `ReplayBuffer(capacity, obs_dim)` + `ReplaySample(buffer, n)` (fields:
 `obs, action, reward, next_obs, done`, **OFF_POLICY**); `RolloutBuffer(capacity, obs_dim)`
 (`.add`, `.compute_gae(last_value, gamma, lam)`, `.reset_storage`) + `RolloutSample(buffer, n)`
 (fields: `obs, action, advantage, return_, old_log_prob`, **ON_POLICY**).
 
-**Distributions** — `Categorical(logits)` → `.log_prob(a)`, `.entropy()`, `.probs()`,
+**Distributions.** `Categorical(logits)` provides `.log_prob(a)`, `.entropy()`, `.probs()`,
 `.log_probs_all()`.
 
-**Signal ops** — `+ - * /`, `-x`, `s[a]` (gather taken-action value), `.max(dim)`,
+**Signal ops.** `+ - * /`, `-x`, `s[a]` (gather taken-action value), `.max(dim)`,
 `.min`, `.mean`, `.sum`, `.log()`, `.exp()`, `.clamp(lo, hi)`, `.detach()`;
 module-level `dq.minimum(a, b)`, `dq.maximum(a, b)`.
 
-**Objectives** (all accept `weight=`) — `dq.loss.huber(pred, target, delta=1.0)`,
+**Objectives** (all accept `weight=`). `dq.loss.huber(pred, target, delta=1.0)`,
 `dq.loss.mse(pred, target)`, `dq.loss.policy_gradient(logp, adv)`,
 `dq.loss.ppo_clip(new_logp, old_logp, adv, clip=0.2)`,
 `dq.loss.minimize(scalar, detach=(...), requires_provenance=...)`, `dq.loss.maximize(scalar, ...)`.
 
-**Compile & run** — `algo = dq.compile(objective_or_list, opt=dq.Adam(lr), device=None)`;
+**Compile & run.** `algo = dq.compile(objective_or_list, opt=dq.Adam(lr), device=None)`;
 `algo.step() -> dict[str, float]`, `algo.module(name)`, `algo.update_step`, `algo.device`,
 `algo.losses`.
 
-**Static analysis** — `dq.verify(objective) -> list[Finding]`, `dq.explain(objective) -> str`.
+**Static analysis.** `dq.verify(objective) -> list[Finding]`, `dq.explain(objective) -> str`.
 
 ---
 
@@ -360,11 +360,11 @@ tests/          # type-checker + learning-smoke tests (11, all green)
 
 ## Roadmap
 
-- **Slice 2 — algorithm search (the novel payoff).** Because an algorithm is a typed
+- **Slice 2: algorithm search (the novel payoff).** Because an algorithm is a typed
   graph object, mutate/evolve objective graphs where every candidate is *valid by
-  construction* — the type system rejects the nonsense a search would otherwise waste
+  construction*: the type system rejects the nonsense a search would otherwise waste
   compute on. AutoRL over a typed IR.
-- **Slice 3 — production hardening.** Vectorized environments, continuous-action SAC
+- **Slice 3: production hardening.** Vectorized environments, continuous-action SAC
   (squashed-Gaussian policies), API stability, and benchmarks vs CleanRL / Stable-Baselines3.
 
 ---
@@ -394,4 +394,4 @@ targets), and that all three families compile, step, and learn.
 
 ## License
 
-MIT — see [`LICENSE`](LICENSE).
+MIT. See [`LICENSE`](LICENSE).
