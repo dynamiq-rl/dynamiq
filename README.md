@@ -2,7 +2,7 @@
   <img src="public/logo.png" alt="Dynamiq" width="420">
 </p>
 
-<h1 align="center">Dynamiq</h1>
+<h1 align="center">dynamiq</h1>
 
 <p align="center">
   <b>Reinforcement-learning algorithms as a typed, compiled graph, not a hand-written training loop.</b>
