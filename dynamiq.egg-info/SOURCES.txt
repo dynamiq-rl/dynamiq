@@ -1,0 +1,17 @@
+pyproject.toml
+dynamiq/__init__.py
+dynamiq/compiler.py
+dynamiq/exceptions.py
+dynamiq/losses.py
+dynamiq/networks.py
+dynamiq/optim.py
+dynamiq/signal.py
+dynamiq/sources.py
+dynamiq/targets.py
+dynamiq/verify.py
+dynamiq.egg-info/PKG-INFO
+dynamiq.egg-info/SOURCES.txt
+dynamiq.egg-info/dependency_links.txt
+dynamiq.egg-info/requires.txt
+dynamiq.egg-info/top_level.txt
+tests/test_typecheck.py

@@ -1,0 +1,12 @@
+Metadata-Version: 2.4
+Name: dynamiq
+Version: 0.0.1
+Summary: RL algorithms as a typed, compiled graph.
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: torch>=2.1
+Requires-Dist: numpy>=1.24
+Provides-Extra: examples
+Requires-Dist: gymnasium[classic-control]>=0.29; extra == "examples"
+Provides-Extra: dev
+Requires-Dist: pytest>=7.0; extra == "dev"

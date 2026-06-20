@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dynamiq"
+version = "0.0.1"
+description = "RL algorithms as a typed, compiled graph."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "torch>=2.1",
+    "numpy>=1.24",
+]
+
+[project.optional-dependencies]
+examples = ["gymnasium[classic-control]>=0.29"]
+dev = ["pytest>=7.0"]
+
+[tool.setuptools.packages.find]
+include = ["dynamiq*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
