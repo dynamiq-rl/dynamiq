@@ -74,6 +74,64 @@ class ReplayBuffer:
         }
 
 
+class ContinuousReplayBuffer:
+    """A ring buffer for continuous-action transitions (float actions)."""
+
+    def __init__(self, capacity: int, obs_dim: int, action_dim: int) -> None:
+        self.capacity = capacity
+        self.obs = np.zeros((capacity, obs_dim), dtype=np.float32)
+        self.next_obs = np.zeros((capacity, obs_dim), dtype=np.float32)
+        self.action = np.zeros((capacity, action_dim), dtype=np.float32)
+        self.reward = np.zeros((capacity,), dtype=np.float32)
+        self.done = np.zeros((capacity,), dtype=np.float32)
+        self._idx = 0
+        self._full = False
+
+    def add(self, obs, action, reward, next_obs, done) -> None:
+        i = self._idx
+        self.obs[i] = obs
+        self.next_obs[i] = next_obs
+        self.action[i] = action
+        self.reward[i] = reward
+        self.done[i] = float(done)
+        self._idx = (i + 1) % self.capacity
+        self._full = self._full or self._idx == 0
+
+    def __len__(self) -> int:
+        return self.capacity if self._full else self._idx
+
+    def sample(self, n: int, device: torch.device) -> dict[str, torch.Tensor]:
+        idx = np.random.randint(0, len(self), size=n)
+        t = lambda a: torch.as_tensor(a[idx], device=device)
+        return {
+            "obs": t(self.obs),
+            "action": t(self.action),
+            "reward": t(self.reward),
+            "next_obs": t(self.next_obs),
+            "done": t(self.done),
+        }
+
+
+class ContinuousReplaySample(Source):
+    """Sample ``n`` transitions from a continuous replay buffer. Provenance: OFF_POLICY."""
+
+    provenance = Provenance.OFF_POLICY
+    _counter = 0
+
+    def __init__(self, buffer: ContinuousReplayBuffer, n: int) -> None:
+        ContinuousReplaySample._counter += 1
+        super().__init__(
+            key=f"cont_replay{ContinuousReplaySample._counter}",
+            fields=("obs", "action", "reward", "next_obs", "done"),
+        )
+        self.buffer = buffer
+        self.n = n
+
+    def materialize(self, device: torch.device) -> Context:
+        batch = self.buffer.sample(self.n, device)
+        return {f"{self._key}/{k}": v for k, v in batch.items()}
+
+
 class ReplaySample(Source):
     """Sample ``n`` transitions from a replay buffer. Provenance: OFF_POLICY."""
 

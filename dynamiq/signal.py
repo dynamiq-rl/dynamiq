@@ -281,6 +281,26 @@ class GatherAction(Signal):
         return values.gather(-1, index.unsqueeze(-1)).squeeze(-1)
 
 
+class ConcatSignal(Signal):
+    """Concatenate two signals along the last dimension."""
+
+    def __init__(self, a: Signal, b: Signal) -> None:
+        super().__init__(
+            label=f"cat({a.label}, {b.label})",
+            parents=[a, b],
+            provenance=combine_provenance(a.provenance, b.provenance),
+            carries_grad=a.carries_grad or b.carries_grad,
+        )
+
+    def eval(self, ctx: Context) -> torch.Tensor:
+        return torch.cat([self.parents[0].eval(ctx), self.parents[1].eval(ctx)], dim=-1)
+
+
+def concat(a: Any, b: Any) -> Signal:
+    """Concatenate two signals along the last dimension."""
+    return ConcatSignal(as_signal(a), as_signal(b))
+
+
 class DataField(Signal):
     """A field (obs / action / reward / ...) of a materialized batch from a data
     source. Data never carries gradients and is tagged with the source's
