@@ -13,13 +13,20 @@ The same vocabulary expresses different algorithm families:
 from . import dist
 from . import losses as loss
 from .compiler import Algorithm, compile
-from .dist import Categorical
+from .dist import Categorical, SquashedNormal
 from .exceptions import DynamiqConfigError, DynamiqError, DynamiqTypeError
-from .networks import Network, PolicyNetwork, QNetwork
+from .networks import ContinuousQNetwork, GaussianPolicy, Network, PolicyNetwork, QNetwork
 from .optim import SGD, Adam, OptimizerSpec
 from .params import Parameter
-from .signal import Provenance, Signal, maximum, minimum
-from .sources import ReplayBuffer, ReplaySample, RolloutBuffer, RolloutSample
+from .signal import Provenance, Signal, concat, maximum, minimum
+from .sources import (
+    ContinuousReplayBuffer,
+    ContinuousReplaySample,
+    ReplayBuffer,
+    ReplaySample,
+    RolloutBuffer,
+    RolloutSample,
+)
 from .targets import Target
 from .verify import Finding, explain, verify
 
@@ -30,12 +37,17 @@ __all__ = [
     "Algorithm",
     "QNetwork",
     "PolicyNetwork",
+    "GaussianPolicy",
+    "ContinuousQNetwork",
     "Network",
     "Parameter",
     "Categorical",
+    "SquashedNormal",
     "Target",
     "ReplayBuffer",
     "ReplaySample",
+    "ContinuousReplayBuffer",
+    "ContinuousReplaySample",
     "RolloutBuffer",
     "RolloutSample",
     "Adam",
@@ -45,6 +57,7 @@ __all__ = [
     "Provenance",
     "minimum",
     "maximum",
+    "concat",
     "verify",
     "explain",
     "Finding",
