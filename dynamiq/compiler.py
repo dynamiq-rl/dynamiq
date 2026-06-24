@@ -15,7 +15,7 @@ import torch
 from .exceptions import DynamiqTypeError
 from .losses import Detached, Loss, RequiresProv
 from .networks import Network, NetworkApply
-from .optim import OptimizerSpec
+from .optim import OptimizerSpec, SchedulerSpec
 from .params import Parameter
 from .signal import DataField, Provenance, Signal
 from .sources import Source
@@ -72,13 +72,14 @@ class Algorithm:
     objective graph. ``step()`` performs one weighted-sum update."""
 
     def __init__(self, losses, parametrics, targets, sources, optimizer, device,
-                 max_grad_norm=None, max_grad_value=None) -> None:
+                 max_grad_norm=None, max_grad_value=None, scheduler=None) -> None:
         self.losses = losses
         # parametrics: name -> object exposing `.module` (Network or Parameter)
         self.parametrics = {p.name: p for p in parametrics}
         self.targets = targets
         self.sources = sources
         self.optimizer = optimizer
+        self.scheduler = scheduler
         self.device = device
         self.max_grad_norm = max_grad_norm
         self.max_grad_value = max_grad_value
@@ -86,6 +87,11 @@ class Algorithm:
             p for pm in parametrics for p in pm.module.parameters() if p.requires_grad
         ]
         self.update_step = 0
+
+    @property
+    def lr(self) -> float:
+        """Current learning rate (from the first param group)."""
+        return self.optimizer.param_groups[0]["lr"]
 
     def module(self, name: str) -> torch.nn.Module:
         """Return the live ``nn.Module`` for a named network/parameter (to act with)."""
@@ -108,12 +114,14 @@ class Algorithm:
         if self.max_grad_value is not None:
             torch.nn.utils.clip_grad_value_(self._learnable, self.max_grad_value)
         self.optimizer.step()
+        if self.scheduler is not None:
+            self.scheduler.step()
         self.update_step += 1
 
         for tgt in self.targets:
             tgt.maybe_sync(self.update_step)
 
-        metrics = {"loss": float(total.detach())}
+        metrics = {"loss": float(total.detach()), "lr": self.lr}
         for i, term in enumerate(terms):
             metrics[f"loss/{self.losses[i].label[:22]}"] = float(term.detach())
         return metrics
@@ -121,7 +129,8 @@ class Algorithm:
 
 def compile(objective, opt: OptimizerSpec, device=None,
             max_grad_norm: float | None = None,
-            max_grad_value: float | None = None) -> Algorithm:
+            max_grad_value: float | None = None,
+            scheduler: SchedulerSpec | None = None) -> Algorithm:
     """Type-check an objective graph and build a runnable :class:`Algorithm`.
 
     Parameters
@@ -130,6 +139,8 @@ def compile(objective, opt: OptimizerSpec, device=None,
         If set, clip gradients by global L2 norm before each optimizer step.
     max_grad_value:
         If set, clamp each gradient element to [-value, +value] before each step.
+    scheduler:
+        If set, step the LR scheduler after each optimizer step.
     """
     losses = objective if isinstance(objective, list) else [objective]
     for o in losses:
@@ -179,6 +190,7 @@ def compile(objective, opt: OptimizerSpec, device=None,
         if prm.requires_grad
     ]
     optimizer = opt.build(learnable)
+    lr_scheduler = scheduler.build(optimizer) if scheduler is not None else None
 
     return Algorithm(
         losses=losses,
@@ -189,4 +201,5 @@ def compile(objective, opt: OptimizerSpec, device=None,
         device=device,
         max_grad_norm=max_grad_norm,
         max_grad_value=max_grad_value,
+        scheduler=lr_scheduler,
     )

@@ -85,6 +85,25 @@ class QNetwork(Network):
         return _mlp([self.obs_dim, *self.hidden, self.n_actions], self.activation)
 
 
+class ValueNetwork(Network):
+    """A state-value head: obs -> single scalar V(s)."""
+
+    def __init__(
+        self,
+        name: str,
+        obs_dim: int,
+        hidden: tuple[int, ...] = (64, 64),
+        activation: type[nn.Module] = nn.Tanh,
+    ) -> None:
+        super().__init__(name)
+        self.obs_dim = obs_dim
+        self.hidden = hidden
+        self.activation = activation
+
+    def build(self) -> nn.Module:
+        return _mlp([self.obs_dim, *self.hidden, 1], self.activation)
+
+
 class PolicyNetwork(Network):
     """A categorical policy head: obs -> logits over discrete actions."""
 

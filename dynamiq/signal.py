@@ -166,6 +166,9 @@ class Signal:
     def clamp(self, lo: float, hi: float) -> "Signal":
         return UnaryOp(self, lambda t: t.clamp(lo, hi), f"clamp[{lo},{hi}]", keep_grad=True)
 
+    def squeeze(self, dim: int = -1) -> "Signal":
+        return UnaryOp(self, lambda t: t.squeeze(dim), f"squeeze({dim})", keep_grad=True)
+
     def __repr__(self) -> str:
         g = "grad" if self.carries_grad else "stop"
         return f"<Signal {self.label} [{self.provenance}, {g}]>"

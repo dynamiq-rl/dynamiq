@@ -15,8 +15,8 @@ from . import losses as loss
 from .compiler import Algorithm, compile
 from .dist import Categorical, SquashedNormal
 from .exceptions import DynamiqConfigError, DynamiqError, DynamiqTypeError
-from .networks import ContinuousQNetwork, GaussianPolicy, Network, PolicyNetwork, QNetwork
-from .optim import SGD, Adam, OptimizerSpec
+from .networks import ContinuousQNetwork, GaussianPolicy, Network, PolicyNetwork, QNetwork, ValueNetwork
+from .optim import SGD, Adam, CosineAnnealing, LinearDecay, OptimizerSpec, SchedulerSpec, StepDecay
 from .params import Parameter
 from .signal import Provenance, Signal, concat, maximum, minimum
 from .sources import (
@@ -39,6 +39,7 @@ __all__ = [
     "PolicyNetwork",
     "GaussianPolicy",
     "ContinuousQNetwork",
+    "ValueNetwork",
     "Network",
     "Parameter",
     "Categorical",
@@ -53,6 +54,10 @@ __all__ = [
     "Adam",
     "SGD",
     "OptimizerSpec",
+    "SchedulerSpec",
+    "CosineAnnealing",
+    "LinearDecay",
+    "StepDecay",
     "Signal",
     "Provenance",
     "minimum",
