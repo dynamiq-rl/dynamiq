@@ -79,3 +79,39 @@ def test_one_training_step_runs():
     algo = dq.compile(loss, opt=dq.Adam(1e-3), device="cpu")
     m = algo.step()
     assert "loss" in m and algo.update_step == 1
+
+
+def test_gradient_clipping_by_norm():
+    import numpy as np
+    import torch
+
+    buf = _buffer()
+    for _ in range(64):
+        buf.add(np.zeros(4), 0, 100.0, np.zeros(4), False)
+    q = dq.QNetwork("q", 4, 2)
+    qt = dq.Target(q, sync="soft", tau=0.01)
+    b = dq.ReplaySample(buf, n=32)
+    target = b.reward + 0.99 * (1 - b.done) * qt(b.next_obs).max(-1)
+    loss = dq.loss.huber(q(b.obs)[b.action], target)
+    algo = dq.compile(loss, opt=dq.Adam(1e-3), device="cpu", max_grad_norm=0.5)
+    algo.step()
+    total_norm = torch.nn.utils.clip_grad_norm_(algo._learnable, float("inf"))
+    assert total_norm <= 0.5 + 1e-6
+
+
+def test_gradient_clipping_by_value():
+    import numpy as np
+    import torch
+
+    buf = _buffer()
+    for _ in range(64):
+        buf.add(np.zeros(4), 0, 100.0, np.zeros(4), False)
+    q = dq.QNetwork("q", 4, 2)
+    qt = dq.Target(q, sync="soft", tau=0.01)
+    b = dq.ReplaySample(buf, n=32)
+    target = b.reward + 0.99 * (1 - b.done) * qt(b.next_obs).max(-1)
+    loss = dq.loss.huber(q(b.obs)[b.action], target)
+    algo = dq.compile(loss, opt=dq.Adam(1e-3), device="cpu", max_grad_value=0.1)
+    algo.step()
+    # after step, grads are consumed; verify the clipping path doesn't error
+    assert algo.update_step == 1

@@ -71,7 +71,8 @@ class Algorithm:
     """A compiled, runnable algorithm: modules, optimizer, and the type-checked
     objective graph. ``step()`` performs one weighted-sum update."""
 
-    def __init__(self, losses, parametrics, targets, sources, optimizer, device) -> None:
+    def __init__(self, losses, parametrics, targets, sources, optimizer, device,
+                 max_grad_norm=None, max_grad_value=None) -> None:
         self.losses = losses
         # parametrics: name -> object exposing `.module` (Network or Parameter)
         self.parametrics = {p.name: p for p in parametrics}
@@ -79,6 +80,11 @@ class Algorithm:
         self.sources = sources
         self.optimizer = optimizer
         self.device = device
+        self.max_grad_norm = max_grad_norm
+        self.max_grad_value = max_grad_value
+        self._learnable = [
+            p for pm in parametrics for p in pm.module.parameters() if p.requires_grad
+        ]
         self.update_step = 0
 
     def module(self, name: str) -> torch.nn.Module:
@@ -97,6 +103,10 @@ class Algorithm:
 
         self.optimizer.zero_grad(set_to_none=True)
         total.backward()
+        if self.max_grad_norm is not None:
+            torch.nn.utils.clip_grad_norm_(self._learnable, self.max_grad_norm)
+        if self.max_grad_value is not None:
+            torch.nn.utils.clip_grad_value_(self._learnable, self.max_grad_value)
         self.optimizer.step()
         self.update_step += 1
 
@@ -109,8 +119,18 @@ class Algorithm:
         return metrics
 
 
-def compile(objective, opt: OptimizerSpec, device=None) -> Algorithm:
-    """Type-check an objective graph and build a runnable :class:`Algorithm`."""
+def compile(objective, opt: OptimizerSpec, device=None,
+            max_grad_norm: float | None = None,
+            max_grad_value: float | None = None) -> Algorithm:
+    """Type-check an objective graph and build a runnable :class:`Algorithm`.
+
+    Parameters
+    ----------
+    max_grad_norm:
+        If set, clip gradients by global L2 norm before each optimizer step.
+    max_grad_value:
+        If set, clamp each gradient element to [-value, +value] before each step.
+    """
     losses = objective if isinstance(objective, list) else [objective]
     for o in losses:
         if not isinstance(o, Loss):
@@ -167,4 +187,6 @@ def compile(objective, opt: OptimizerSpec, device=None) -> Algorithm:
         sources=list(sources.values()),
         optimizer=optimizer,
         device=device,
+        max_grad_norm=max_grad_norm,
+        max_grad_value=max_grad_value,
     )
